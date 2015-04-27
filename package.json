@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "run": "node index.js"
-  }
+  },
   "dependencies": {
     "smt-bot": "latest"
   }
