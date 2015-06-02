@@ -1,8 +1,8 @@
 var Bot = require('bot');
 var Promise = require('bluebird');
 
-// var bot = new Bot('rz2jsbrq', 'training', 'http://vindinium.org'); //Put your bot's code here and change training to Arena when you want to fight others.
-var bot = new Bot('j4fkjjlu', 'training', 'http://52.8.116.125:9000'); //Put your bot's code here and change training to Arena when you want to fight others.
+var bot = new Bot('7n4d7yj4', 'training', 'http://vindinium.org');
+// var bot = new Bot('j4fkjjlu', 'training', 'http://52.8.116.125:9000');
 
 var goDir;
 Bot.prototype.botBrain = function() {
@@ -29,24 +29,22 @@ Bot.prototype.botBrain = function() {
 
       var task = 'free mines';
 
-      /*   ___             _ _ _   _
-       *  / __|___ _ _  __| (_) |_(_)___ _ _  ___
-       * | (__/ _ \ ' \/ _` | |  _| / _ \ ' \(_-<
-       *  \___\___/_||_\__,_|_|\__|_\___/_||_/__/
-       *
-       * Where the initial conditions are run
-       */
+      //  ___             _ _ _   _
+      // / __|___ _ _  __| (_) |_(_)___ _ _  ___
+      // | (__/ _ \ ' \/ _` | |  _| / _ \ ' \(_-<
+      // \___\___/_||_\__,_|_|\__|_\___/_||_/__/
+      //
+      // Where the initial conditions are run
 
       if(bot.yourBot.life <= 50) task = 'taverns'
       if(bot.freeMines.length >= 0) task = 'steal mines'
 
-      /*  _____        _
-       * |_   _|_ _ __| |__ ___
-       *  | |/ _` (_-< / /(_-<
-       *  |_|\__,_/__/_\_\/__/
-       *
-       * Where the tasks run
-       */
+      //  _____        _
+      // |_   _|_ _ __| |__ ___
+      //  | |/ _` (_-< / /(_-<
+      //  |_|\__,_/__/_\_\/__/
+      //
+      // Where the tasks run
 
 
       if(task === 'free mines') {

@@ -1,0 +1,26 @@
+{
+  "name": "vindinium-js",
+  "version": "1.0.0",
+  "description": "a simple vindinium bot",
+  "main": "stable.js",
+  "dependencies": {
+    "bluebird": "^2.9.27",
+    "lodash": "^3.9.3",
+    "pathfinding": "^0.4.17",
+    "request": "^2.57.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ZucchiniZe/vindinium-js.git"
+  },
+  "author": "ZucchiniZe",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ZucchiniZe/vindinium-js/issues"
+  },
+  "homepage": "https://github.com/ZucchiniZe/vindinium-js"
+}
