@@ -1,7 +1,7 @@
 var Bot = require('bot');
 var PF = require('pathfinding');
 // var bot = new Bot('5i3misix', 'training', 'http://vindinium.org'); //Put your bot's code here and change training to Arena when you want to fight others.
-var bot = new Bot('gcvuyehx', 'arena', 'http://52.8.116.125:9000'); //Put your bot's code here and change training to Arena when you want to fight others.
+var bot = new Bot('vu4wxtdi', 'arena', 'http://52.8.116.125:9000'); //Put your bot's code here and change training to Arena when you want to fight others.
 var goDir;
 var Promise = require('bluebird');
 Bot.prototype.botBrain = function() {
@@ -89,7 +89,7 @@ Bot.prototype.botBrain = function() {
         var fear = 0;
         // Determine your Greed! //
         greed += 105;
-        if(enemyBots[richestEnemyIndex].gold - bot.yourBot.x gold > 100) {} else {
+        if(enemyBots[richestEnemyIndex].gold - bot.yourBot.gold > 100) {} else {
             greed += enemyBots[richestEnemyIndex].gold - bot.yourBot.gold;
         }
         // Determine Your Fear! //

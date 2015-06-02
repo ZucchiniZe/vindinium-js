@@ -1,7 +1,7 @@
 var _ = require('lodash')
 var colors = require('colors')
 var Bot = require('bot');
-var PF = require('pathfinding');
+var Promise = require('bluebird');
 // KEYS
 // Hesby: gcvuyehx
 // /bin/rm -rf *: j4fkjjlu
@@ -11,7 +11,6 @@ var PF = require('pathfinding');
 var bot = new Bot('adr7zzu6', 'training', 'http://52.8.116.125:9000');
 
 var goDir;
-var Promise = require('bluebird');
 Bot.prototype.botBrain = function() {
   return new Promise(function(resolve, reject) {
     var dir;
@@ -54,7 +53,7 @@ Bot.prototype.botBrain = function() {
     function botWithMostMines() {
       var allbots = []
       for(let i=1;i<=4;i++) {
-        if(i!==4 && bot['bot'+i].mineCount > bot['bot'+(i+1)].mineCount) {
+        if(i!==4 && (bot['bot'+i].mineCount / mineCount)*100 >= 35) {
           allbots.push(i)
         }
       }
@@ -62,6 +61,15 @@ Bot.prototype.botBrain = function() {
         return false
       }
       return [bot['bot'+allbots[allbots.length-1]].pos.x, bot['bot'+allbots[allbots.length-1]].pos.y]
+    }
+
+    function enemyMineCountHigher() {
+      for(let i=4;i<=4;i++) {
+        if(bot.yourBot.mineCount < bot['bot'+i].mineCount) {
+          return true
+        }
+      }
+      return false
     }
 
     var bot_name = 'mine';
@@ -111,11 +119,11 @@ Bot.prototype.botBrain = function() {
       }
 
       function move_to(place) {
-        if(!(place[0] instanceof Array) && typeof place[0][0] == 'undefined') {
-          console.log(`Moving (${pos}) --> (${place})`)
+        if(!(place instanceof Array) && typeof place[0] == 'undefined' && typeof place[0][0] == 'undefined') {
+          console.log(`Moving (${pos}) ==> (${place})`)
           return bot.findPath(pos, place)
         } else {
-          console.log(`Moving (${pos}) --> (${closest(place)})`)
+          console.log(`Moving (${pos}) ==> (${closest(place)})`)
           return bot.findPath(pos, closest(place));
         }
       }
@@ -129,8 +137,8 @@ Bot.prototype.botBrain = function() {
       //
       // Where the initial conditions are run
 
-      if(mineOwnage <= 15) task = 'all mines'
-      if(botWithMostMines()) task = 'kill with most mines'
+      if(mineOwnage <= 25) task = 'all mines'
+      if(enemyMineCountHigher()) task = 'kill with most mines'
       if(mineOwnage >= 25) task = 'kill others'
       if(bot.yourBot.life <= 40) task = 'heal' // Always have last so it overrules all other conditionals
 
