@@ -1,10 +1,10 @@
+var _ = require('lodash')
 var Bot = require('bot');
-var Promise = require('bluebird');
-
-var bot = new Bot('7n4d7yj4', 'training', 'http://vindinium.org');
-// var bot = new Bot('j4fkjjlu', 'training', 'http://52.8.116.125:9000');
-
+var PF = require('pathfinding');
+// var bot = new Bot('rz2jsbrq', 'training', 'http://vindinium.org'); //Put your bot's code here and change training to Arena when you want to fight others.
+var bot = new Bot('j4fkjjlu', 'training', 'http://52.8.116.125:9000'); //Put your bot's code here and change training to Arena when you want to fight others.
 var goDir;
+var Promise = require('bluebird');
 Bot.prototype.botBrain = function() {
   return new Promise(function(resolve, reject) {
     var myDir;
@@ -14,14 +14,32 @@ Bot.prototype.botBrain = function() {
       if(bot.yourBot.id !== i) enemyBots.push(bot['bot'+i])
     }
 
+    var enemyMines = [];
+    for(i=1;i<=4;i++) {
+      if(bot.yourBot.id !== i) enemyMines.push(bot['bot'+i+'mines'])
+    }
+    enemyMines = _.flattenDeep(enemyMines)
+
+    console.log(enemyMines)
+
     var bot_name = 'mine';
 
     if(bot_name === 'mine') {
       function closest(place) {
-        var close = bot[place][0];
-        for(i=0;i<bot[place].length;i++) {
-          if(bot.findDistance(myPos, close) > bot.findDistance(myPos, bot[place][i])) {
-            close = bot[place][i];
+        var close;
+        if(typeof place === 'string') {
+          close = bot[place][0];
+          for(i=0;i<bot[place].length;i++) {
+            if(bot.findDistance(myPos, close) > bot.findDistance(myPos, bot[place][i])) {
+              close = bot[place][i];
+            }
+          }
+        } else {
+          close = place[0];
+          for(i=0;i<place.length;i++) {
+            if(bot.findDistance(myPos, close) > bot.findDistance(myPos, place[i])) {
+              close = place[i];
+            }
           }
         }
         return close
@@ -44,13 +62,12 @@ Bot.prototype.botBrain = function() {
       //  | |/ _` (_-< / /(_-<
       //  |_|\__,_/__/_\_\/__/
       //
-      // Where the tasks run
-
+      // Where the tasks runs
 
       if(task === 'free mines') {
         myDir = bot.findPath(myPos, closest('freeMines'));
       } else if(task === 'steal mines') {
-        myDir = bot.findPath(myPos, closest('freeMines'));
+        myDir = bot.findPath(myPos, closest(enemyMinesx));
       } else if(task === 'taverns') {
         myDir = bot.findPath(myPos, closest('taverns'));
       }
