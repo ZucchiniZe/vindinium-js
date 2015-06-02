@@ -4,6 +4,7 @@
   "description": "a simple vindinium bot",
   "main": "stable.js",
   "dependencies": {
+    "babel": "^5.4.7",
     "bluebird": "^2.9.27",
     "cli-table": "^0.3.1",
     "colors": "^1.1.0",
@@ -13,9 +14,10 @@
   },
   "devDependencies": {},
   "scripts": {
-    "start": "node test.js",
+    "start": "./node_modules/babel/bin/babel-node test.js",
+    "arena": "./node_modules/babel/bin/babel-node stable.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "stable": "mv stable.js backups/stable-$(date +%s).js && cat test.js > stable.js"
+    "stable": "mv stable.js backups/stable-$(date +%s).js && cat test.js > stable.js && sed -i '' 's/training/arena/g' stable.js"
   },
   "repository": {
     "type": "git",
