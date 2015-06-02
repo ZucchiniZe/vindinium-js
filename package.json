@@ -5,12 +5,15 @@
   "main": "stable.js",
   "dependencies": {
     "bluebird": "^2.9.27",
+    "cli-table": "^0.3.1",
+    "colors": "^1.1.0",
     "lodash": "^3.9.3",
     "pathfinding": "^0.4.17",
     "request": "^2.57.0"
   },
   "devDependencies": {},
   "scripts": {
+    "start": "node test.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "stable": "mv stable.js backups/stable-$(date +%s).js && cat test.js > stable.js"
   },

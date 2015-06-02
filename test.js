@@ -1,14 +1,16 @@
 var _ = require('lodash')
+var colors = require('colors')
 var Bot = require('bot');
 var PF = require('pathfinding');
-// var bot = new Bot('rz2jsbrq', 'training', 'http://vindinium.org'); //Put your bot's code here and change training to Arena when you want to fight others.
-var bot = new Bot('j4fkjjlu', 'training', 'http://52.8.116.125:9000'); //Put your bot's code here and change training to Arena when you want to fight others.
+var bot = new Bot('u6jqlhgk', 'training', 'http://vindinium.org');
+// var bot = new Bot('j4fkjjlu', 'training', 'http://52.8.116.125:9000');
 var goDir;
 var Promise = require('bluebird');
 Bot.prototype.botBrain = function() {
   return new Promise(function(resolve, reject) {
-    var myDir;
-    var myPos = [bot.yourBot.pos.x, bot.yourBot.pos.y];
+    var dir;
+    var pos = [bot.yourBot.pos.x, bot.yourBot.pos.y];
+
     var enemyBots = [];
     for(i=1;i<=4;i++) {
       if(bot.yourBot.id !== i) enemyBots.push(bot['bot'+i])
@@ -18,9 +20,7 @@ Bot.prototype.botBrain = function() {
     for(i=1;i<=4;i++) {
       if(bot.yourBot.id !== i) enemyMines.push(bot['bot'+i+'mines'])
     }
-    enemyMines = _.flattenDeep(enemyMines)
-
-    console.log(enemyMines)
+    enemyMines = _.flatten(enemyMines)
 
     var bot_name = 'mine';
 
@@ -30,19 +30,23 @@ Bot.prototype.botBrain = function() {
         if(typeof place === 'string') {
           close = bot[place][0];
           for(i=0;i<bot[place].length;i++) {
-            if(bot.findDistance(myPos, close) > bot.findDistance(myPos, bot[place][i])) {
+            if(bot.findDistance(pos, close) > bot.findDistance(pos, bot[place][i])) {
               close = bot[place][i];
             }
           }
         } else {
           close = place[0];
           for(i=0;i<place.length;i++) {
-            if(bot.findDistance(myPos, close) > bot.findDistance(myPos, place[i])) {
+            if(bot.findDistance(pos, close) > bot.findDistance(pos, place[i])) {
               close = place[i];
             }
           }
         }
         return close
+      }
+
+      function move_to(place) {
+        return bot.findPath(pos, closest(place));
       }
 
       var task = 'free mines';
@@ -54,8 +58,8 @@ Bot.prototype.botBrain = function() {
       //
       // Where the initial conditions are run
 
-      if(bot.yourBot.life <= 50) task = 'taverns'
-      if(bot.freeMines.length >= 0) task = 'steal mines'
+      if(bot.freeMines.length <= 0) task = 'steal mines'
+      if(bot.yourBot.life <= 50) task = 'taverns' // Always have last so it overrules all other conditionals
 
       //  _____        _
       // |_   _|_ _ __| |__ ___
@@ -65,18 +69,21 @@ Bot.prototype.botBrain = function() {
       // Where the tasks runs
 
       if(task === 'free mines') {
-        myDir = bot.findPath(myPos, closest('freeMines'));
+        dir = move_to('freeMines')
       } else if(task === 'steal mines') {
-        myDir = bot.findPath(myPos, closest(enemyMinesx));
+        dir = move_to(enemyMines)
       } else if(task === 'taverns') {
-        myDir = bot.findPath(myPos, closest('taverns'));
+        dir = move_to('taverns');
+      } else if(task === 'kill others') {
+        dir = move_to(enemyBots)
       }
 
-      if(myDir === 'none') {
+      if(dir === 'none') {
         bot.goDir = ['north', 'south', 'east', 'west'][Math.floor(Math.random() * 4)];
       } else {
-        bot.goDir = myDir;
+        bot.goDir = dir;
       }
+      console.log('Running Task:', colors.green(task))
     }
 
     resolve();
