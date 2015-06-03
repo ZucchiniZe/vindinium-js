@@ -1,4 +1,4 @@
-# Vindinium Behavior tree bot #1
+# Vindinium Behavior tree bot
 
 This is a tiny vindninium robot that I use for my computer science expedition to beat all the **plebs**
 
