@@ -1,3 +1,6 @@
 node_modules
 !node_modules/bot
+!node_modules/machine
 backups
+text_tree.txt
+tree.monopic

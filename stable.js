@@ -63,6 +63,15 @@ Bot.prototype.botBrain = function() {
       return [bot['bot'+allbots[allbots.length-1]].pos.x, bot['bot'+allbots[allbots.length-1]].pos.y]
     }
 
+    function enemyMineCountHigher() {
+      for(let i=4;i<=4;i++) {
+        if(bot.yourBot.mineCount < bot['bot'+i].mineCount) {
+          return true
+        }
+      }
+      return false
+    }
+
     var bot_name = 'mine';
 
     if(bot_name === 'mine') {
@@ -110,7 +119,6 @@ Bot.prototype.botBrain = function() {
       }
 
       function move_to(place) {
-        console.log(typeof place, place)
         if(!(place instanceof Array) && typeof place[0] == 'undefined' && typeof place[0][0] == 'undefined') {
           console.log(`Moving (${pos}) ==> (${place})`)
           return bot.findPath(pos, place)
@@ -130,7 +138,7 @@ Bot.prototype.botBrain = function() {
       // Where the initial conditions are run
 
       if(mineOwnage <= 25) task = 'all mines'
-      if(botWithMostMines()) task = 'kill with most mines'
+      if(enemyMineCountHigher()) task = 'kill with most mines'
       if(mineOwnage >= 25) task = 'kill others'
       if(bot.yourBot.life <= 40) task = 'heal' // Always have last so it overrules all other conditionals
 
