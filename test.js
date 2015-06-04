@@ -2,7 +2,6 @@ var _ = require('lodash')
 var colors = require('colors')
 var Vind = require('bot');
 var Promise = require('bluebird');
-var Machine = require('machine')
 
 _.deepEq = function(arr1, arr2) {
   _.each(arr1, (ar1) => {
@@ -17,8 +16,8 @@ _.deepEq = function(arr1, arr2) {
 // /bin/rm -rf *: j4fkjjlu
 // /bin/rm -rf /: adr7zzu6
 
-var vind = new Vind('u6jqlhgk', 'training', 'http://vindinium.org');
-// var vind = new Vind('adr7zzu6', 'training', 'http://52.8.116.125:9000');
+// var vind = new Vind('u6jqlhgk', 'training', 'http://vindinium.org');
+var vind = new Vind('adr7zzu6', 'training', 'http://52.8.116.125:9000');
 
 /**
 Behavior tree illustration for debugging purposes
@@ -74,42 +73,26 @@ function Bot(bot) {
   }
 
   this.mineOwnage = (bot.yourBot.mineCount / this.mineCount) * 100
+
   this.closest = function(place) {
     var close;
-    if(typeof place === 'string') {
-      close = this.bot[place][0];
-      for(let i=0;i<this.bot[place].length;i++) {
-        if(this.bot.findDistance(this.pos, close) > this.bot.findDistance(this.pos, bot[place][i])) {
-          close = this.bot[place][i];
-        }
-      }
-    } else if(place instanceof Array && typeof place[0][0] !== 'undefined') {
-      close = place[0];
-      for(let i=0;i<place.length;i++) {
-        if(this.bot.findDistance(this.pos, close) > this.bot.findDistance(this.pos, place[i])) {
-          close = place[i];
-        }
+    if(place instanceof Array && typeof place[0][0] == 'undefined') {
+      return place
+    }
+    close = place[0];
+    for(let i=0;i<place.length;i++) {
+      if(this.bot.findDistance(this.pos, close) > this.bot.findDistance(this.pos, place[i])) {
+        close = place[i];
       }
     }
     return close
   }
 
-  this.find_closest = function(dist1, dist2) {
-    if(dist1 === undefined || dist1.length == 0) {
-      return this.closest(dist2)
-    } else if(dist2 === undefined || dist2.length == 0) {
-      return this.closest(dist1)
-    } else {
-      if(this.bot.findDistance(this.pos, this.closest(dist1)) > this.bot.findDistance(this.pos, this.closest(dist2))) {
-        return this.closest(dist1)
-      } else if(this.bot.findDistance(this.pos, this.closest(dist1)) < this.bot.findDistance(this.pos, this.closest(dist2))) {
-        return this.closest(dist2)
-      }
-    }
-  }
-
   this.move_to = function(place) {
-    if(!(place instanceof Array) && typeof place[0] == 'undefined' && typeof place[0][0] == 'undefined') {
+    var close;
+    // console.log('move_to', typeof place, place)
+    console.log(this.bot.getNeighbors())
+    if(place instanceof Array && typeof place[0][0] == 'undefined') {
       console.log(`Moving (${this.pos}) ==> (${place})`)
       return this.bot.findPath(this.pos, place)
     } else {
@@ -131,7 +114,10 @@ Bot.prototype = {
     if(allbots.length === 0) {
       return this.closest(this.enemyBotsPos)
     }
-    return [bot['bot'+allbots[allbots.length-1]].pos.x, bot['bot'+allbots[allbots.length-1]].pos.y]
+    var mostMinesPos = [this.bot['bot'+allbots[allbots.length-1]].pos.x, this.bot['bot'+allbots[allbots.length-1]].pos.y]
+    if(_.eq(mostMinesPos, this.pos)) {
+      return this.closest(this.enemyBotsPos)
+    }
   },
   enemyMineCountHighe: function() {
     for(let i=4;i<=4;i++) {
@@ -140,6 +126,9 @@ Bot.prototype = {
       }
     }
     return false
+  },
+  within: function(place, dist) {
+    return (Number(this.bot.findDistance(this.pos, place)) >= Number(dist))
   }
 }
 
@@ -166,10 +155,9 @@ Bot.states = {
     return false
   },
   isHealthy: function() {
-    return this.self.life >= 40
+    return this.self.life >= 50
   },
   healthy: function() {
-    console.log('test')
     return true
   },
   shouldMine: function() {
@@ -177,7 +165,7 @@ Bot.states = {
     return this.mineOwnage <= 30
   },
   mine: function() {
-    this.dir = this.move_to(this.find_closest(this.bot.freeMines, this.enemyMines))
+    this.dir = this.move_to(this.closest(this.allMines))
   },
   shouldSeekCombat: function() {
     return this.mineOwnage >= 35
@@ -186,10 +174,10 @@ Bot.states = {
     this.dir = this.move_to(this.botWithMostMines())
   },
   shouldDrinkAnyway: function() {
-    return this.self.life <= 75 && _.contains(this.bot.getNeighbors(pos), closest('taverns'))
+    return this.self.life <= 75 && _.contains(this.bot.getNeighbors(this.pos), closest(this.bot.taverns))
   },
   drinkAnyway: function() {
-    this.dir = this.move_to(this.closest('taverns'))
+    this.dir = this.move_to(this.closest(this.bot.taverns))
   },
   isUnHealthy: function() {
     return this.self.life <= 50
@@ -201,7 +189,7 @@ Bot.states = {
     return this.self.life <= 50
   },
   drink: function() {
-    this.dir = this.move_to(this.closest('taverns'))
+    this.dir = this.move_to(this.closest(this.bot.taverns))
   }
 }
 
@@ -210,10 +198,11 @@ Vind.prototype.botBrain = function() {
 
     var bot = new Bot(vind);
 
-    bot.state = new Machine().generateTree(require('./tree.json'), bot, Bot.states)
+    bot.state = new (require('machine'))().generateTree(require('./tree.json'), bot, Bot.states)
 
     bot.state = bot.state.tick();
-    bot.state = bot.state.tick()
+    bot.state = bot.state.tick();
+    bot.state = bot.state.tick();
 
     console.log('Running Behavior:', colors.green(bot.state.identifier))
     console.log('Moving:', colors.magenta(bot.dir))
