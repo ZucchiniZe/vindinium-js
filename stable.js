@@ -1,166 +1,215 @@
 var _ = require('lodash')
 var colors = require('colors')
-var Bot = require('bot');
+var Vind = require('bot');
 var Promise = require('bluebird');
+
+_.deepEq = function(arr1, arr2) {
+  _.each(arr1, (ar1) => {
+    _.each(arr2, (ar2) => {
+      return _.eq(ar1, ar2)
+    })
+  })
+}
+
 // KEYS
 // Hesby: gcvuyehx
 // /bin/rm -rf *: j4fkjjlu
 // /bin/rm -rf /: adr7zzu6
 
-// var bot = new Bot('u6jqlhgk', 'arena', 'http://vindinium.org');
-var bot = new Bot('adr7zzu6', 'arena', 'http://52.8.116.125:9000');
+// var vind = new Vind('u6jqlhgk', 'arena', 'http://vindinium.org');
+var vind = new Vind('adr7zzu6', 'arena', 'http://52.8.116.125:9000');
 
-var goDir;
-Bot.prototype.botBrain = function() {
+/**
+Behavior tree illustration for debugging purposes
+                                 +-------------------+
+                                 | Bot Decision Tree |
+                                 +-------------------+
+                                           |
+               +---------------------------+--------------------------+
+               |                                                      v
+               v                                                +-----------+
+         +----------+                                           | isHealthy |
+         | inCombat |                                           +-----------+
+         +----------+                                                 |
+               |                                                      |
+               |                         +----------------+-----------+-------+--------------------+
+       +-------+------+                  |                |                   |                    |
+       |              |                  |                |                   |                    |
+       v              v                  v                v                   v                    v
+ +-----------+   +---------+       +----------+   +--------------+   +----------------+   +-----------------+
+ |shouldFight|   |shouldRun|       |shouldMine|   |shouldSeekMine|   |shouldSeekCombat|   |shouldDrinkAnyway|
+ +-----------+   +---------+       +----------+   +--------------+   +----------------+   +-----------------+
+*/
+
+function Bot(bot) {
+  this.state = null
+  this.bot = bot
+  this.self = bot.yourBot
+  this.pos = [bot.yourBot.pos.x, bot.yourBot.pos.y];
+  this.dir = '';
+
+  this.enemyBots = [];
+  for(let i=1;i<=4;i++) {
+    if(bot.yourBot.id !== i && !bot.data.game.heroes[i-1].crashed) this.enemyBots.push(bot['bot'+i])
+  }
+
+  this.enemyBotsPos = []
+  for(let i=1;i<=4;i++) {
+    if(bot.yourBot.id !== i) this.enemyBotsPos.push([bot['bot'+i].pos.x, bot['bot'+i].pos.y])
+  }
+
+  this.enemyMines = [];
+  for(let i=1;i<=4;i++) {
+    if(bot.yourBot.id !== i) this.enemyMines.push(bot['bot'+i+'mines'])
+  }
+  this.enemyMines = _.flatten(this.enemyMines)
+
+  this.allMines = [];
+  this.allMines = bot.freeMines.concat(this.enemyMines)
+
+  this.mineCount = this.allMines.length
+  for(let i=1;i<=4;i++) {
+    this.mineCount += bot['bot'+i].mineCount
+  }
+
+  this.mineOwnage = (bot.yourBot.mineCount / this.mineCount) * 100
+
+  this.closest = function(place) {
+    var close;
+    if(place instanceof Array && typeof place[0][0] == 'undefined') {
+      return place
+    }
+    close = place[0];
+    for(let i=0;i<place.length;i++) {
+      if(this.bot.findDistance(this.pos, close) > this.bot.findDistance(this.pos, place[i])) {
+        close = place[i];
+      }
+    }
+    return close
+  }
+
+  this.move_to = function(place) {
+    var close;
+    // console.log('move_to', typeof place, place)
+    console.log(this.bot.getNeighbors())
+    if(place instanceof Array && typeof place[0][0] == 'undefined') {
+      console.log(`Moving (${this.pos}) ==> (${place})`)
+      return this.bot.findPath(this.pos, place)
+    } else {
+      var close = this.closest(place)
+      console.log(`Moving (${this.pos}) ==> (${place})`)
+      return this.bot.findPath(this.pos, place)
+    }
+  }
+}
+
+Bot.prototype = {
+  botWithMostMines: function() {
+    var allbots = []
+    for(let i=1;i<=4;i++) {
+      if(i!==4 && (this.bot['bot'+i].mineCount / this.mineCount)*100 >= 35) {
+        allbots.push(i)
+      }
+    }
+    if(allbots.length === 0) {
+      return this.closest(this.enemyBotsPos)
+    }
+    var mostMinesPos = [this.bot['bot'+allbots[allbots.length-1]].pos.x, this.bot['bot'+allbots[allbots.length-1]].pos.y]
+    if(_.eq(mostMinesPos, this.pos)) {
+      return this.closest(this.enemyBotsPos)
+    }
+  },
+  enemyMineCountHighe: function() {
+    for(let i=4;i<=4;i++) {
+      if(this.bot.yourBot.mineCount < this.bot['bot'+i].mineCount) {
+        return true
+      }
+    }
+    return false
+  },
+  within: function(place, dist) {
+    return (Number(this.bot.findDistance(this.pos, place)) >= Number(dist))
+  }
+}
+
+Bot.states = {
+  idle: function() {
+    console.log('random direction')
+    this.dir = ['north', 'south', 'east', 'west'][Math.floor(Math.random() * 4)];
+  },
+  inCombat: function() {
+    return _.deepEq(this.bot.getNeighbors(this.pos), this.enemyBotsPos)
+  },
+  combat: function() {},
+  shouldFight: function() {
+    return this.self.life <= 40
+  },
+  fight: function() {
+    this.dir = this.move_to(this.closest(this.enemyBotsPos))
+  },
+  shouldRun: function() {
+    return this.self.life >= 40
+  },
+  run: function() {
+    // TODO: implement running code
+    return false
+  },
+  isHealthy: function() {
+    return this.self.life >= 50
+  },
+  healthy: function() {
+    return true
+  },
+  shouldMine: function() {
+    // TODO: maybe add a function to check if mine is within radius of mines
+    return this.mineOwnage <= 30
+  },
+  mine: function() {
+    this.dir = this.move_to(this.closest(this.allMines))
+  },
+  shouldSeekCombat: function() {
+    return this.mineOwnage >= 35
+  },
+  seekCombat: function() {
+    this.dir = this.move_to(this.botWithMostMines())
+  },
+  shouldDrinkAnyway: function() {
+    return this.self.life <= 75 && _.contains(this.bot.getNeighbors(this.pos), closest(this.bot.taverns))
+  },
+  drinkAnyway: function() {
+    this.dir = this.move_to(this.closest(this.bot.taverns))
+  },
+  isUnHealthy: function() {
+    return this.self.life <= 50
+  },
+  unhealthy: function() {
+    return true
+  },
+  shouldDrink: function() {
+    return this.self.life <= 50
+  },
+  drink: function() {
+    this.dir = this.move_to(this.closest(this.bot.taverns))
+  }
+}
+
+Vind.prototype.botBrain = function() {
   return new Promise(function(resolve, reject) {
-    var dir;
-    var pos = [bot.yourBot.pos.x, bot.yourBot.pos.y];
 
-    //    _          _                         _
-    //   /_\   _____(_)__ _ _ _  _ __  ___ _ _| |_ ___
-    //  / _ \ (_-<_-< / _` | ' \| '  \/ -_) ' \  _(_-<
-    // /_/ \_\/__/__/_\__, |_||_|_|_|_\___|_||_\__/__/
-    //                |___/
-    //
-    // Where arrays with things are initialized
+    var bot = new Bot(vind);
 
-    var enemyBots = [];
-    for(let i=1;i<=4;i++) {
-      if(bot.yourBot.id !== i && !bot.data.game.heroes[i-1].crashed) enemyBots.push(bot['bot'+i])
-    }
+    bot.state = new (require('machine'))().generateTree(require('./tree.json'), bot, Bot.states)
 
-    var enemyBotsPos = []
-    for(let i=1;i<=4;i++) {
-      if(bot.yourBot.id !== i) enemyBotsPos.push([bot['bot'+i].pos.x, bot['bot'+i].pos.y])
-    }
+    bot.state = bot.state.tick();
+    bot.state = bot.state.tick();
+    bot.state = bot.state.tick();
 
-    var enemyMines = [];
-    for(let i=1;i<=4;i++) {
-      if(bot.yourBot.id !== i) enemyMines.push(bot['bot'+i+'mines'])
-    }
-    enemyMines = _.flatten(enemyMines)
+    console.log('Running Behavior:', colors.green(bot.state.identifier))
+    console.log('Moving:', colors.magenta(bot.dir))
 
-    var allMines = [];
-    allMines = bot.freeMines.concat(enemyMines)
-
-    var mineCount = allMines.length
-    for(let i=1;i<=4;i++) {
-      mineCount += bot['bot'+i].mineCount
-    }
-
-    var mineOwnage = (bot.yourBot.mineCount / mineCount) * 100
-
-    function botWithMostMines() {
-      var allbots = []
-      for(let i=1;i<=4;i++) {
-        if(i!==4 && (bot['bot'+i].mineCount / mineCount)*100 >= 35) {
-          allbots.push(i)
-        }
-      }
-      if(allbots.length === 0) {
-        return false
-      }
-      return [bot['bot'+allbots[allbots.length-1]].pos.x, bot['bot'+allbots[allbots.length-1]].pos.y]
-    }
-
-    var bot_name = 'mine';
-
-    if(bot_name === 'mine') {
-
-      //  _  _     _
-      // | || |___| |_ __  ___ _ _ ___
-      // | __ / -_) | '_ \/ -_) '_(_-<
-      // |_||_\___|_| .__/\___|_| /__/
-      //          |_|
-      //
-      // Helper functions to easily move around
-
-      function closest(place) {
-        var close;
-        if(typeof place === 'string') {
-          close = bot[place][0];
-          for(let i=0;i<bot[place].length;i++) {
-            if(bot.findDistance(pos, close) > bot.findDistance(pos, bot[place][i])) {
-              close = bot[place][i];
-            }
-          }
-        } else if(place instanceof Array && typeof place[0][0] !== 'undefined') {
-          close = place[0];
-          for(let i=0;i<place.length;i++) {
-            if(bot.findDistance(pos, close) > bot.findDistance(pos, place[i])) {
-              close = place[i];
-            }
-          }
-        }
-        return close
-      }
-
-      function find_closest(dist1, dist2) {
-        if(dist1 === undefined || dist1.length == 0) {
-          return dist2
-        } else if(dist2 === undefined || dist2.length == 0) {
-          return dist1
-        } else {
-          if(bot.findDistance(pos, closest(dist1)) > bot.findDistance(pos, closest(dist2))) {
-            return dist1
-          } else if(bot.findDistance(pos, closest(dist1)) < bot.findDistance(pos, closest(dist2))) {
-            return dist2
-          }
-        }
-      }
-
-      function move_to(place) {
-        console.log(typeof place, place)
-        if(!(place instanceof Array) && typeof place[0] == 'undefined' && typeof place[0][0] == 'undefined') {
-          console.log(`Moving (${pos}) ==> (${place})`)
-          return bot.findPath(pos, place)
-        } else {
-          console.log(`Moving (${pos}) ==> (${closest(place)})`)
-          return bot.findPath(pos, closest(place));
-        }
-      }
-
-      var task = 'all mines';
-
-      //  ___             _ _ _   _
-      // / __|___ _ _  __| (_) |_(_)___ _ _  ___
-      // | (__/ _ \ ' \/ _` | |  _| / _ \ ' \(_-<
-      // \___\___/_||_\__,_|_|\__|_\___/_||_/__/
-      //
-      // Where the initial conditions are run
-
-      if(mineOwnage <= 25) task = 'all mines'
-      if(botWithMostMines()) task = 'kill with most mines'
-      if(mineOwnage >= 25) task = 'kill others'
-      if(bot.yourBot.life <= 40) task = 'heal' // Always have last so it overrules all other conditionals
-
-      //  _____        _
-      // |_   _|_ _ __| |__ ___
-      //  | |/ _` (_-< / /(_-<
-      //  |_|\__,_/__/_\_\/__/
-      //
-      // Where the tasks runs
-
-      if(task === 'all mines') {
-        dir = move_to(find_closest(bot.freeMines, enemyMines))
-      } else if(task === 'heal') {
-        dir = move_to('taverns');
-      } else if(task === 'kill with most mines') {
-        dir = move_to(botWithMostMines())
-      } else if(task === 'kill others') {
-        dir = move_to(enemyBotsPos)
-      }
-
-      if(dir === 'none') {
-        console.log('random direction')
-        bot.goDir = ['north', 'south', 'east', 'west'][Math.floor(Math.random() * 4)];
-      } else {
-        bot.goDir = dir;
-      }
-      console.log('Running Task:', colors.green(task))
-    }
+    vind.goDir = bot.dir
 
     resolve();
   });
 }
-bot.runGame();
+vind.runGame();
