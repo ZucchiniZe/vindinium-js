@@ -15,8 +15,11 @@ _.deepEq = function(arr1, arr2) {
 // Hesby: gcvuyehx
 // /bin/rm -rf *: j4fkjjlu
 // /bin/rm -rf /: adr7zzu6
+// Alex: ae1hmp6f
+// Polish Fury: rz2jsbrq
+// Scapegoat: iopmwjz5
 
-// var vind = new Vind('u6jqlhgk', 'training', 'http://vindinium.org');
+// var vind = new Vind('yh3zgrye', 'training', 'http://vindinium.org');
 var vind = new Vind('adr7zzu6', 'training', 'http://52.8.116.125:9000');
 
 /**
@@ -41,12 +44,14 @@ Behavior tree illustration for debugging purposes
  +-----------+   +---------+       +----------+   +--------------+   +----------------+   +-----------------+
 */
 
+// Initialize the main object with this items
 function Bot(bot) {
   this.state = null
   this.bot = bot
   this.self = bot.yourBot
   this.pos = [bot.yourBot.pos.x, bot.yourBot.pos.y];
   this.dir = '';
+  this.self.spawnPos = [this.self.spawnPos.x, this.self.spawnPos.y]
 
   this.enemyBots = [];
   for(let i=1;i<=4;i++) {
@@ -55,7 +60,7 @@ function Bot(bot) {
 
   this.enemyBotsPos = []
   for(let i=1;i<=4;i++) {
-    if(bot.yourBot.id !== i) this.enemyBotsPos.push([bot['bot'+i].pos.x, bot['bot'+i].pos.y])
+    if(bot.yourBot.id !== i && !bot.data.game.heroes[i-1].crashed) this.enemyBotsPos.push([bot['bot'+i].pos.x, bot['bot'+i].pos.y])
   }
 
   this.enemyMines = [];
@@ -74,9 +79,10 @@ function Bot(bot) {
 
   this.mineOwnage = (bot.yourBot.mineCount / this.mineCount) * 100
 
+  // Find the closest location within array of locations
   this.closest = function(place) {
     var close;
-    if(place instanceof Array && typeof place[0][0] == 'undefined') {
+    if(place instanceof Array && place.length !== 0 && typeof place[0][0] == 'undefined') {
       return place
     }
     close = place[0];
@@ -88,22 +94,23 @@ function Bot(bot) {
     return close
   }
 
+  // Move to a place according to coordinates
   this.move_to = function(place) {
     var close;
     // console.log('move_to', typeof place, place)
-    console.log(this.bot.getNeighbors())
     if(place instanceof Array && typeof place[0][0] == 'undefined') {
-      console.log(`Moving (${this.pos}) ==> (${place})`)
+      console.log(`Moving (${colors.red(this.pos)}) ==> (${colors.green(place)})`)
       return this.bot.findPath(this.pos, place)
     } else {
       var close = this.closest(place)
-      console.log(`Moving (${this.pos}) ==> (${place})`)
+      console.log(`Moving (${colors.red(this.pos)}) ==> (${colors.green(place)})`)
       return this.bot.findPath(this.pos, place)
     }
   }
 }
 
 Bot.prototype = {
+  // Find the bot with the most mines
   botWithMostMines: function() {
     var allbots = []
     for(let i=1;i<=4;i++) {
@@ -119,7 +126,8 @@ Bot.prototype = {
       return this.closest(this.enemyBotsPos)
     }
   },
-  enemyMineCountHighe: function() {
+  // If enemy minecount is higher
+  enemyMineCountHigher: function() {
     for(let i=4;i<=4;i++) {
       if(this.bot.yourBot.mineCount < this.bot['bot'+i].mineCount) {
         return true
@@ -127,18 +135,20 @@ Bot.prototype = {
     }
     return false
   },
+  // Check if coordinate is within set radius
   within: function(place, dist) {
     return (Number(this.bot.findDistance(this.pos, place)) >= Number(dist))
   }
 }
 
 Bot.states = {
+  // Idle
   idle: function() {
-    console.log('random direction')
-    this.dir = ['north', 'south', 'east', 'west'][Math.floor(Math.random() * 4)];
+    this.dir = 'none'
   },
+  // Check if in combat
   inCombat: function() {
-    return _.deepEq(this.bot.getNeighbors(this.pos), this.enemyBotsPos)
+    return _.deepEq(this.bot.getNeighbors(), this.enemyBotsPos)
   },
   combat: function() {},
   shouldFight: function() {
@@ -152,7 +162,7 @@ Bot.states = {
   },
   run: function() {
     // TODO: implement running code
-    return false
+    this.dir = this.move_to(this.self.spawnPos)
   },
   isHealthy: function() {
     return this.self.life >= 50
@@ -161,7 +171,6 @@ Bot.states = {
     return true
   },
   shouldMine: function() {
-    // TODO: maybe add a function to check if mine is within radius of mines
     return this.mineOwnage <= 30
   },
   mine: function() {
@@ -174,7 +183,7 @@ Bot.states = {
     this.dir = this.move_to(this.botWithMostMines())
   },
   shouldDrinkAnyway: function() {
-    return this.self.life <= 75 && _.contains(this.bot.getNeighbors(this.pos), closest(this.bot.taverns))
+    return this.self.life <= 85 && _.contains(this.bot.getNeighbors(), closest(this.bot.taverns))
   },
   drinkAnyway: function() {
     this.dir = this.move_to(this.closest(this.bot.taverns))
