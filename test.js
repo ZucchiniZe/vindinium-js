@@ -4,11 +4,13 @@ var Vind = require('bot');
 var Promise = require('bluebird');
 
 _.deepEq = function(arr1, arr2) {
+  var ret_value = false
   _.each(arr1, (ar1) => {
     _.each(arr2, (ar2) => {
-      return _.eq(ar1, ar2)
+      if(_.eq(ar1, ar2)) ret_value = true
     })
   })
+  return ret_value
 }
 
 // KEYS
@@ -142,15 +144,10 @@ Bot.prototype = {
 }
 
 Bot.states = {
-  // Idle
-  idle: function() {
-    this.dir = 'none'
-  },
   // Check if in combat
   inCombat: function() {
     return _.deepEq(this.bot.getNeighbors(), this.enemyBotsPos)
   },
-  combat: function() {},
   shouldFight: function() {
     return this.self.life <= 40
   },
@@ -166,9 +163,6 @@ Bot.states = {
   },
   isHealthy: function() {
     return this.self.life >= 50
-  },
-  healthy: function() {
-    return true
   },
   shouldMine: function() {
     return this.mineOwnage <= 30
@@ -190,9 +184,6 @@ Bot.states = {
   },
   isUnHealthy: function() {
     return this.self.life <= 50
-  },
-  unhealthy: function() {
-    return true
   },
   shouldDrink: function() {
     return this.self.life <= 50
